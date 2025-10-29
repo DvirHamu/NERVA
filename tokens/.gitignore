@@ -1,0 +1,5 @@
+# Ignore local token and secret files
+token.json
+.env
+client_secret.json
+
