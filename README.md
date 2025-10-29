@@ -36,7 +36,10 @@ pip install -r requirements.txt
 4. Configure LiveKit
   Set up a LiveKit server (see LiveKit documentation).
   Ensure you have API keys for LiveKit and the necessary credentials for Deepgram and OpenAI (if required by your setup).
-  Update .env with any additional LiveKit or plugin-specific variables (e.g., DEEPGRAM_API_KEY, OPENAI_API_KEY)
+
+  Update .env with any additional LiveKit or plugin-specific variables (e.g., DEEPGRAM_API_KEY, OPENAI_API_KEY) 
+  You will also need to create an account with open ai and deepgram and get the keys. For open ai you will need to add 5$
+
   .env should look like this
 
 GOOGLE_REFRESH_TOKEN=""
@@ -57,3 +60,5 @@ DEEPGRAM_API_KEY=""
 
 6. Run the Application
 Start the voice assistant:
+python .\app.py console
+you can tell it to read events you have or create etc.
