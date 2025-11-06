@@ -68,6 +68,7 @@ you can tell it to read events you have or create etc.
   - added front end by cloning the repo
     -   https://github.com/livekit-examples/agent-starter-react
     - Also change the file .env.example to .env.local and add the keys 
+    - To fully config front end you might need to use wsl to run pnpm install, which installs all necessary packages
 
   - to run start by going to app.py and running python app.py dev
   - and then pnpm dev to run the local environment
