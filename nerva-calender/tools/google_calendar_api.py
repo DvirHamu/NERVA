@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import json
 import os
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger("google-calendar-api")
 logger.setLevel(logging.INFO)
@@ -61,7 +63,7 @@ def build_service_from_refresh_token(refresh_token):
     creds.refresh(Request())
     return build('calendar', 'v3', credentials=creds)
 
-def create_event_func(input: CreateEventInput, refresh_token: str, timezone: str = 'Asia/Karachi') -> str:
+def create_event_func(input: CreateEventInput, refresh_token: str, timezone: str = 'America/Phoenix') -> str:
     try:
         service = build_service_from_refresh_token(refresh_token)
         # Safely handle Optional[List[str]] being None
@@ -114,7 +116,7 @@ def list_events_func(input: ListEventsInput, refresh_token: str) -> str:
         return f"Error listing events: {str(e) if str(e) else 'Unknown error'}"
 
 
-def update_event_func(input: UpdateEventInput, refresh_token: str, timezone: str = 'Asia/Karachi') -> str:
+def update_event_func(input: UpdateEventInput, refresh_token: str, timezone: str = 'America/Phoenix') -> str:
     try:
         service = build_service_from_refresh_token(refresh_token)
         if input.event_number and not input.event_id:
@@ -157,59 +159,132 @@ def update_event_func(input: UpdateEventInput, refresh_token: str, timezone: str
     except Exception as e:
         logger.error(f"Error updating event: {str(e)}")
         return f"Error updating event: {str(e) if str(e) else 'Unknown error'}"
+def delete_event_func(input: DeleteEventInput, refresh_token: str, timezone_str: str = "America/Phoenix") -> str:
+    """
+    Delete a calendar event using one of:
+      - event_id directly
+      - title + start_datetime (preferred)
+      - event_number (N-th upcoming event in next 30 days)
+    """
 
-def delete_event_func(input: DeleteEventInput, refresh_token: str) -> str:
+    def to_rfc3339_utc(dt: datetime, tz: ZoneInfo) -> str:
+        """Convert a datetime to RFC3339 UTC string, e.g. 2025-11-06T16:00:00Z"""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=tz)
+        return (
+            dt.astimezone(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
     try:
         service = build_service_from_refresh_token(refresh_token)
+        tz = ZoneInfo(timezone_str)
         event_id = input.event_id
+
+        # ─── 1) If we have event_id, delete directly ──────────────────────────────
+        if event_id:
+            try:
+                service.events().delete(calendarId="primary", eventId=event_id).execute()
+                return "Event deleted successfully."
+            except Exception as e:
+                logger.error(f"Error deleting event by ID: {e}")
+                return f"Error deleting event: {str(e) if str(e) else 'Unknown error'}"
+
+        # ─── 2) Try title + start_datetime search ─────────────────────────────────
         if not event_id and input.title and input.start_datetime:
             try:
-                start_dt = datetime.fromisoformat(input.start_datetime.replace("Z", ""))
+                raw = input.start_datetime.strip()
+                # datetime.fromisoformat doesn't like 'Z', so strip it if present
+                if raw.endswith("Z"):
+                    raw = raw[:-1]
+
+                start_dt = datetime.fromisoformat(raw)
+                if start_dt.tzinfo is None:
+                    start_dt = start_dt.replace(tzinfo=tz)
+
+                # look in a 1-day window around the provided time
                 end_dt = start_dt + timedelta(days=1)
+
             except ValueError as ve:
-                return f"Invalid date/time format: {str(ve)}. Please use format like 'Sep 23, 2025 at 6:00 PM'."
-            events = service.events().list(
-                calendarId='primary',
-                timeMin=start_dt.isoformat() + 'Z',
-                timeMax=end_dt.isoformat() + 'Z',
-                q=input.title,
-                singleEvents=True,
-                maxResults=2
-            ).execute().get('items', [])
+                return (
+                    f"Invalid date/time format: {ve}. "
+                    "Please use a date/time like '2025-09-23T18:00:00-07:00'."
+                )
+
+            try:
+                events_resp = service.events().list(
+                    calendarId="primary",
+                    timeMin=to_rfc3339_utc(start_dt, tz),
+                    timeMax=to_rfc3339_utc(end_dt, tz),
+                    q=input.title,
+                    singleEvents=True,
+                    maxResults=10,
+                ).execute()
+            except Exception as e:
+                logger.error(f"Error listing events for delete: {e}")
+                return f"Error looking up events to delete: {str(e) if str(e) else 'Unknown error'}"
+
+            events = events_resp.get("items", [])
+
             if not events:
-                return f"No event found with title '{input.title}' at that time."
-            if len(events) > 1:
-                return f"Multiple events found with title '{input.title}' at that time. Please use event number or list events to select."
-            event_id = events[0]['id']
+                return f"No event found with title '{input.title}' around that time."
+
+            if len(events) > 1 and not input.event_number:
+                # Let the agent ask a clarifying question
+                return (
+                    f"Multiple events found with title '{input.title}' near that time. "
+                    "Please specify which one (for example, 'delete the first one')."
+                )
+
+            # If user gave an event_number, use it; otherwise default to the first match.
+            idx = (input.event_number or 1) - 1
+            if idx < 0 or idx >= len(events):
+                return f"Invalid event number: {input.event_number}. Please choose between 1 and {len(events)}."
+
+            event_id = events[idx]["id"]
+
+        # ─── 3) If we still don't have event_id but have event_number ─────────────
         if not event_id and input.event_number:
-            events = service.events().list(
-                calendarId='primary',
-                timeMin=(datetime.now() - timedelta(days=30)).isoformat() + 'Z',
-                timeMax=(datetime.now() + timedelta(days=30)).isoformat() + 'Z',
-                maxResults=10,
-                singleEvents=True,
-                orderBy='startTime'
-            ).execute().get('items', [])
+            try:
+                now = datetime.now(tz)
+                events_resp = service.events().list(
+                    calendarId="primary",
+                    timeMin=to_rfc3339_utc(now - timedelta(days=30), tz),
+                    timeMax=to_rfc3339_utc(now + timedelta(days=30), tz),
+                    maxResults=10,
+                    singleEvents=True,
+                    orderBy="startTime",
+                ).execute()
+            except Exception as e:
+                logger.error(f"Error listing events by number: {e}")
+                return f"Error looking up events by number: {str(e) if str(e) else 'Unknown error'}"
+
+            events = events_resp.get("items", [])
+            if not events:
+                return "No events found in the next 30 days."
+
             if input.event_number < 1 or input.event_number > len(events):
                 return f"Invalid event number: {input.event_number}. Choose between 1 and {len(events)}."
-            event_id = events[input.event_number - 1]['id']
+
+            event_id = events[input.event_number - 1]["id"]
+
+        # ─── 4) If we STILL don't have an ID, ask user for more info ─────────────
         if not event_id:
-            return "Please provide event title with date/time or list events to select."
+            return (
+                "I couldn't figure out which event to delete. "
+                "Please either give me the event title and date/time, or ask to list events first."
+            )
+
+        # ─── 5) Final delete call ────────────────────────────────────────────────
         try:
-            service.events().delete(calendarId='primary', eventId=event_id).execute()
+            service.events().delete(calendarId="primary", eventId=event_id).execute()
+            return "Event deleted successfully."
         except Exception as e:
+            logger.error(f"Error deleting event: {e}")
             return f"Error deleting event: {str(e) if str(e) else 'Unknown error'}"
-        events = service.events().list(
-            calendarId='primary',
-            timeMin=(datetime.now() - timedelta(days=30)).isoformat() + 'Z',
-            timeMax=(datetime.now() + timedelta(days=30)).isoformat() + 'Z',
-            maxResults=10,
-            singleEvents=True,
-            orderBy='startTime'
-        ).execute().get('items', [])
-        if any(e['id'] == event_id for e in events):
-            return f"Failed to delete event. Please try again or check your calendar connection."
-        return "Event deleted successfully"
+
     except Exception as e:
-        logger.error(f"Error deleting event: {str(e)}")
+        logger.error(f"Error in delete_event_func: {e}")
         return f"Error deleting event: {str(e) if str(e) else 'Unknown error'}"

@@ -62,3 +62,12 @@ DEEPGRAM_API_KEY=""
 Start the voice assistant:
 python .\app.py console
 you can tell it to read events you have or create etc.
+
+//update on a couple things 11/6/25
+  - changed a little bit of the function of the app.py and the calender api to work, before it had some bugs with the time zones and instuctions
+  - added front end by cloning the repo
+    -   https://github.com/livekit-examples/agent-starter-react
+    - Also change the file .env.example to .env.local and add the keys 
+
+  - to run start by going to app.py and running python app.py dev
+  - and then pnpm dev to run the local environment
