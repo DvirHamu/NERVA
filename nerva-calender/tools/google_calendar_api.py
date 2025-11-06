@@ -27,10 +27,14 @@ class CreateEventInput(BaseModel):
     location: Optional[str] = Field(default="", description="Event location")
 
 class ListEventsInput(BaseModel):
-    start_datetime: str = Field(description="ISO8601 start datetime for range")
-    end_datetime: str = Field(description="ISO8601 end datetime for range")
-    # FIX 2 (New): Allowed 'null' for max_results
+    start_datetime: Optional[str] = Field(
+        default=None, description="ISO8601 start datetime for range (default: start of today)"
+    )
+    end_datetime: Optional[str] = Field(
+        default=None, description="ISO8601 end datetime for range (default: end of today)"
+    )
     max_results: Optional[int] = Field(default=10, description="Max events to return")
+
 
 class UpdateEventInput(BaseModel):
 # ... (unchanged)
@@ -62,6 +66,36 @@ def build_service_from_refresh_token(refresh_token):
     )
     creds.refresh(Request())
     return build('calendar', 'v3', credentials=creds)
+def normalize_rfc3339(dt_str: str, timezone_str: str = "America/Phoenix") -> str:
+    """
+    Accepts:
+      - '2025-11-06'
+      - '2025-11-06T00:00:00'
+      - '2025-11-06T00:00:00Z'
+      - '2025-11-06T00:00:00-07:00'
+    and returns a valid RFC3339 datetime string with timezone.
+    """
+    raw = dt_str.strip()
+    tz = ZoneInfo(timezone_str)
+
+    # Already has 'Z' (UTC)
+    if raw.endswith("Z"):
+        return raw
+
+    # Already has a +hh:mm or -hh:mm offset after the date
+    if len(raw) > 10 and any(sign in raw[10:] for sign in ["+", "-"]):
+        return raw
+
+    # Just a date? -> add midnight
+    if "T" not in raw:
+        raw = raw + "T00:00:00"
+
+    dt = datetime.fromisoformat(raw)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=tz)
+
+    # This format is accepted by Google Calendar
+    return dt.isoformat()
 
 def create_event_func(input: CreateEventInput, refresh_token: str, timezone: str = 'America/Phoenix') -> str:
     try:
@@ -83,7 +117,6 @@ def create_event_func(input: CreateEventInput, refresh_token: str, timezone: str
     except Exception as e:
         logger.error(f"Error creating event: {str(e)}")
         return f"Error creating event: {str(e) if str(e) else 'Unknown error'}"
-
 def list_events_func(input: ListEventsInput, refresh_token: str) -> str:
     try:
         service = build_service_from_refresh_token(refresh_token)
@@ -114,6 +147,7 @@ def list_events_func(input: ListEventsInput, refresh_token: str) -> str:
     except Exception as e:
         logger.error(f"Error listing events: {str(e)}")
         return f"Error listing events: {str(e) if str(e) else 'Unknown error'}"
+
 
 
 def update_event_func(input: UpdateEventInput, refresh_token: str, timezone: str = 'America/Phoenix') -> str:
