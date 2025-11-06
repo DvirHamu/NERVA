@@ -55,15 +55,14 @@ class GoogleCalendarAgent(Agent):
                 You are a helpful voice assistant. The user is speaking to you.
 
                 You can:
-                - Answer general questions (school, coding, life, etc.)
+                - Answer general questions (school, coding, life, etc.), If user shares the screen or camera you can also answer questions about that stuff too
                 - Manage the user's Google Calendar using tools:
                   * create_event
                   * list_events
                   * update_event
                   * delete_event
                 - Use the user's shared screen or camera (if available) as visual context.
-                  For example, if you see a calendar UI or an email on screen, you can use that
-                  information to help the user. If you're unsure what you're seeing, ask.
+                
 
                 Current time: {current_time} in Arizona.
                 Always respond clearly in natural language.
