@@ -117,33 +117,85 @@ def create_event_func(input: CreateEventInput, refresh_token: str, timezone: str
     except Exception as e:
         logger.error(f"Error creating event: {str(e)}")
         return f"Error creating event: {str(e) if str(e) else 'Unknown error'}"
-def list_events_func(input: ListEventsInput, refresh_token: str) -> str:
+def list_events_func(
+    input: ListEventsInput,
+    refresh_token: str,
+    timezone_str: str = "America/Phoenix",
+) -> str:
     try:
         service = build_service_from_refresh_token(refresh_token)
-        # Safely get max_results, defaulting to 10 if None is received
+        tz = ZoneInfo(timezone_str)
+
+        now = datetime.now(tz)
+
+        # Figure out time range (default: today in user's timezone)
+        if input.start_datetime:
+            time_min = normalize_rfc3339(input.start_datetime, timezone_str)
+        else:
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            time_min = start_of_day.isoformat()
+
+        if input.end_datetime:
+            time_max = normalize_rfc3339(input.end_datetime, timezone_str)
+        else:
+            end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=0)
+            time_max = end_of_day.isoformat()
+
         max_results = input.max_results if input.max_results is not None else 10
-        events = service.events().list(
-            calendarId='primary',
-            timeMin=input.start_datetime,
-            timeMax=input.end_datetime,
-            maxResults=max_results, # Use the safe value
+
+        events_resp = service.events().list(
+            calendarId="primary",
+            timeMin=time_min,
+            timeMax=time_max,
+            maxResults=max_results,
             singleEvents=True,
-            orderBy='startTime'
+            orderBy="startTime",
         ).execute()
-        items = events.get('items', [])
-        # ... (rest of function unchanged)
+
+        items = events_resp.get("items", [])
+
         if not items:
-            return "No events found."
-        result = []
-        for idx, e in enumerate(items, 1):
-            start = e['start'].get('dateTime', e['start'].get('date'))
+            return "You don’t have anything scheduled."
+
+        # Build a simple internal list of events with human-readable times
+        parsed = []
+        for e in items:
+            summary = e.get("summary", "No title")
+            start_raw = e["start"].get("dateTime", e["start"].get("date"))
+            human_time = start_raw
+
             try:
-                dt = datetime.fromisoformat(start.replace("Z", ""))
-                natural_time = dt.strftime("%I:%M %p, %b %d").lstrip("0").lower()
-            except:
-                natural_time = start
-            result.append({"id": e['id'], "summary": e.get('summary', 'No title'), "start": natural_time})
-        return json.dumps(result)
+                if "T" in start_raw:
+                    # DateTime event
+                    dt = datetime.fromisoformat(start_raw.replace("Z", ""))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=tz)
+                    else:
+                        dt = dt.astimezone(tz)
+                    human_time = dt.strftime("%A at %I:%M %p").lstrip("0")
+                else:
+                    # All-day event
+                    dt = datetime.fromisoformat(start_raw)
+                    dt = dt.replace(tzinfo=tz)
+                    human_time = dt.strftime("%A, %b %d")
+            except Exception:
+                human_time = start_raw
+
+            parsed.append({"summary": summary, "human_time": human_time})
+
+        count = len(parsed)
+
+        if count == 1:
+            ev = parsed[0]
+            return f"You’ve got one thing coming up: {ev['summary']} on {ev['human_time']}."
+        else:
+            next_ev = parsed[0]
+            return (
+                f"You’ve got {count} things coming up. "
+                f"The next one is {next_ev['summary']} on {next_ev['human_time']}. "
+                "If you’d like more specifics, I can go through them one by one or help you adjust one of them."
+            )
+
     except Exception as e:
         logger.error(f"Error listing events: {str(e)}")
         return f"Error listing events: {str(e) if str(e) else 'Unknown error'}"
