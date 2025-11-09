@@ -103,7 +103,7 @@ Style:
             llm=openai.LLM(model="gpt-4o-mini"),
             tts=openai.TTS(),
             vad=silero.VAD.load(),
-            chat_ctx=chat_ctx
+            chat_ctx=chat_ctx,
             vad= silero.VAD.load(
             activation_threshold=0.6,    # higher -> needs clearer speech to trigger
             min_speech_duration=0.15,    # ignore super tiny blips
