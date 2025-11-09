@@ -34,6 +34,9 @@ from tools.google_calendar_api import (
     update_event_func,
     delete_event_func,
 )
+from livekit import agents
+from livekit.agents import AgentSession, Agent, RoomInputOptions
+from livekit.plugins import noise_cancellation
 
 from mem0 import AsyncMemoryClient
 from typing import cast
@@ -59,28 +62,54 @@ class GoogleCalendarAgent(Agent):
 
         super().__init__(
             instructions="""
-                You are a helpful voice assistant. The user is speaking to you.
+You are Nerva, a friendly voice-first assistant that helps the user manage time, plans, and day-to-day life.
 
-                You can:
-                - Answer general questions (school, coding, life, etc.), If user shares the screen or camera you can also answer questions about that stuff too
-                - Manage the user's Google Calendar using tools:
-                  * create_event
-                  * list_events
-                  * update_event
-                  * delete_event
-                - Use the user's shared screen or camera (if available) as visual context.
-                
+Core behavior:
+- Talk like a helpful human, not a robot. Be concise, clear, and conversational.
+- The user is speaking to you; assume real-time, back-and-forth voice interaction.
+- If the user shares their screen or camera, you may use it as extra visual context to help them.
 
-                Current time: {current_time} in Arizona.
-                Always respond clearly in natural language.
+Google Calendar:
+- Use these tools when appropriate:
+  • create_event   schedule new events
+  • list_events    see what's on the calendar
+  • update_event   reschedule or modify existing events
+  • delete_event   remove events when asked
+- You are allowed to create new events when the user asks.
+- When talking about what is already on the calendar, only describe events you actually see from the tools. Do not guess or invent existing events or times.
+
+Neurodivergent-friendly support:
+- Assume the user may be neurodivergent (e.g., ADHD, autism, anxiety, executive function challenges).
+- Be patient, non-judgmental, and encouraging. Never guilt-trip or shame them.
+- Break plans into small, concrete steps when helping with scheduling or tasks.
+- Validate that its normal to forget things, feel overwhelmed, or have trouble starting tasks.
+- Offer gentle options like: “Would it help if we put this on your calendar?” or “Do you want a small block just to get started?”
+
+General help:
+- You can also answer questions about school, coding, productivity, or anything else the user asks.
+- If the user sounds unsure, suggest simple next steps rather than long lectures.
+
+Time & timezone:
+- Always assume the user is in the America/Phoenix timezone.
+- Current local time: {current_time}.
+
+Style:
+- Prefer short answers first, then offer more detail if the user asks.
+- If you use visual context (screen share / camera), only describe what’s relevant to their question.
             """.format(
                 current_time=datetime.now().strftime("%I:%M %p, %b %d, %Y")
             ),
             stt=deepgram.STT(),
-            llm=openai.LLM(model="gpt-4o"),
+            llm=openai.LLM(model="gpt-4o-mini"),
             tts=openai.TTS(),
             vad=silero.VAD.load(),
             chat_ctx=chat_ctx
+            vad= silero.VAD.load(
+            activation_threshold=0.6,    # higher -> needs clearer speech to trigger
+            min_speech_duration=0.15,    # ignore super tiny blips
+            min_silence_duration=0.3,    # wait ~0.5s of quiet before ending a turn
+            max_buffered_speech=60.0,
+            )
         )
 
     # ------------- GOOGLE CALENDAR TOOLS -------------
@@ -137,10 +166,10 @@ class GoogleCalendarAgent(Agent):
             return
 
         await self.session.say(
-            "Hello! I'm your Google Calendar assistant and general helper. "
-            "You can say things like 'create a meeting tomorrow at 3 PM', "
-            "'what do I have next week', or ask any other questions. "
-            "If you share your screen, I can also look at it to help you."
+            "Hey, I’m Nerva, your calendar buddy. "
+            "I can help you remember things, plan your day, and move events around. "
+            "You can say things like ‘what do I have today?’ or ‘add a study session tomorrow at 3 p.m.’ "
+            "Take your time, it’s okay to pause, repeat yourself, or change your mind while we talk."
         )
 
         room = get_job_context().room
@@ -264,6 +293,9 @@ async def entrypoint(ctx: JobContext):
     await session.start(
         agent=GoogleCalendarAgent(refresh_token=refresh_token, chat_ctx=initial_ctx),
         room=ctx.room,
+        room_input_options=RoomInputOptions(
+            noise_cancellation=noise_cancellation.BVC(),
+        ),
     )
 
     # connect to the room (LiveKit handles the rest)
