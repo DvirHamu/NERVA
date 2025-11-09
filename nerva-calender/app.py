@@ -102,7 +102,6 @@ Style:
             stt=deepgram.STT(),
             llm=openai.LLM(model="gpt-4o-mini"),
             tts=openai.TTS(),
-            vad=silero.VAD.load(),
             chat_ctx=chat_ctx,
             vad= silero.VAD.load(
             activation_threshold=0.6,    # higher -> needs clearer speech to trigger
