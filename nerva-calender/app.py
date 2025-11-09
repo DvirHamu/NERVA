@@ -235,7 +235,22 @@ async def entrypoint(ctx: JobContext):
         logging.info(f"Memories: {memory_str}")
         initial_ctx.add_message(
             role="system",
-            content=f"The user's name is {user_name} and this is relevant context about their feelings and what helps them feel better {memory_str}"
+            content=f"""
+            ### 
+            The user's name is {user_name}. 
+
+            ### 
+            The following is relevant context about the user in the form of memories. 
+            These memories may include conclusions made about the user from previous conversations.
+            These memories may include hobbies or activities the user might like to do. 
+            These memories may include what the user does when the user is struggling with symptomps of ADHD. 
+            For example, if the user is struggling with hyperactivity, focusing, or forgetting the user might have certain activities that help. 
+
+            Use these memories to make your responses more helpful, informed, personalized, emphathetic, and contextually aware. 
+
+            ### 
+            Memories: {memory_str}
+            """
         )
 
     # Initialize MCP server
