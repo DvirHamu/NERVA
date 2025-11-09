@@ -72,3 +72,7 @@ you can tell it to read events you have or create etc.
 
   - to run start by going to app.py and running python app.py dev
   - and then pnpm dev to run the local environment
+
+  pip install pydantic-ai-slim[openai,mcp]
+  MEM0_API_KEY=""
+  N8N_MCP_SERVER_URL=""
