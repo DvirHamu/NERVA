@@ -12,6 +12,7 @@ from livekit.agents import (
     cli,
     RunContext,
     get_job_context,
+    ChatContext
 )
 from livekit.agents.llm import (
     function_tool,
@@ -37,6 +38,12 @@ from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
 from livekit.plugins import noise_cancellation
 
+from mem0 import AsyncMemoryClient
+from typing import cast
+
+import json
+import logging
+
 logger = logging.getLogger("google-calendar-voice-agent")
 logger.setLevel(logging.INFO)
 
@@ -45,7 +52,7 @@ load_dotenv(dotenv_path="./tokens/.env")
 
 
 class GoogleCalendarAgent(Agent):
-    def __init__(self, refresh_token: str) -> None:
+    def __init__(self, refresh_token: str, chat_ctx=None) -> None:
         # video-related state (for screen share / camera)
         self.refresh_token = refresh_token
         self.timezone = "America/Phoenix"
@@ -95,6 +102,8 @@ Style:
             stt=deepgram.STT(),
             llm=openai.LLM(model="gpt-4o-mini"),
             tts=openai.TTS(),
+            vad=silero.VAD.load(),
+            chat_ctx=chat_ctx
             vad= silero.VAD.load(
             activation_threshold=0.6,    # higher -> needs clearer speech to trigger
             min_speech_duration=0.15,    # ignore super tiny blips
@@ -209,11 +218,80 @@ async def entrypoint(ctx: JobContext):
             "No refresh token found. Set GOOGLE_REFRESH_TOKEN in ./tokens/.env or your environment."
         )
         return
+    
+    async def shutdown_hook(chat_ctx: ChatContext, mem0: AsyncMemoryClient, memory_str: str):
+        logging.info("Shutting down, saving chat context to memory")
+        logging.info(f"Chat context messages: {chat_ctx.items}")
+
+        messages_formatted = []
+        chat_context = chat_ctx.items[2:] # Skip first two items (system prompt and memory context message)
+        for item in chat_context:
+            if getattr(item, "type", None) != "message": continue
+
+            msg = cast(ChatMessage, item)
+
+            content_parts = []
+            for content in getattr(msg, "content", []):
+                if hasattr(content, "text"):
+                    #if content.text not in memory_str: content_parts.append(content.text)
+                    content_parts.append(content.text)
+                elif isinstance(content, str):
+                    #if content not in memory_str: content_parts.append(content)
+                    content_parts.append(content)
+                else:
+                    continue
+
+            content_str = " ".join(content_parts).strip()
+            if not content_str: continue
+
+            if getattr(msg, "role", None) in ["user", "assistant"]:
+                messages_formatted.append({
+                    "role": msg.role,
+                    "content": content_str
+                })
+
+        logging.info(f"Formatted messages to add to memory: {messages_formatted}")
+        
+        if messages_formatted: await mem0.add(messages_formatted, user_id="dev")
+
+        logging.info("Chat context saved to memory")            
 
     session = AgentSession()
+    
+    mem0 = AsyncMemoryClient()
+    user_name = "dev"
+
+    results = await mem0.get_all(
+        filters={
+            "OR": [
+                {
+                    "user_id": user_name
+                }
+            ]
+        }
+    )
+    results = results["results"]
+    initial_ctx = ChatContext()
+    memory_str = ""
+
+    if results:
+        memories = [
+            {
+                "memory": result["memory"],
+                "updated_at": result["updated_at"]
+            }
+            for result in results
+        ]
+
+        memory_str = json.dumps(memories)
+        logging.info(f"Memories: {memory_str}")
+        initial_ctx.add_message(
+            role="system",
+            content=f"The user's name is {user_name} and this is relevant context about their feelings and what helps them feel better {memory_str}"
+        )
 
     await session.start(
-        agent=GoogleCalendarAgent(refresh_token=refresh_token),
+        agent=GoogleCalendarAgent(refresh_token=refresh_token, chat_ctx=initial_ctx),
         room=ctx.room,
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC(),
@@ -223,6 +301,7 @@ async def entrypoint(ctx: JobContext):
     # connect to the room (LiveKit handles the rest)
     await ctx.connect()
 
+    ctx.add_shutdown_callback(lambda: shutdown_hook(session._agent.chat_ctx, mem0, memory_str))
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
