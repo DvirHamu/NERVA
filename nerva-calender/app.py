@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import anyio
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -315,10 +316,27 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
             # Clear so we don't keep reusing old frames
             self._latest_frame = None
 
+async def mcp_event_logging(mcp_server: MCPServerSse):
+    async with mcp_server.create_streams() as (receive_stream, send_stream):
+        logger.debug(f"[MCP EVENT LOGGING] Attached to MCP stream for {mcp_server.name}")
+
+        async def _listener():
+            try:
+                async for msg in receive_stream:
+                    if isinstance(msg, Exception):
+                        logger.error(f"[MCP EVENT LOGGING] MCP stream error: {msg}")
+                    else:
+                        logger.debug(f"[MCP EVENT LOGGING] MCP message: {msg}")
+            except Exception as e:
+                logger.exception(f"[MCP EVENT LOGGING] Exception in MCP stream listener: {e}")
+            finally:
+                logger.warning(f"[MCP EVENT LOGGING] MCP connection closed for {mcp_server.name}")
+
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(_listener)
+            await anyio.sleep_forever()
 
 # ------------- ENTRYPOINT / WORKER SETUP -------------
-
-
 async def entrypoint(ctx: JobContext):
     
     async def shutdown_hook(chat_ctx: ChatContext, mem0: AsyncMemoryClient, memory_str: str):
@@ -415,12 +433,17 @@ async def entrypoint(ctx: JobContext):
         name="SSE MCP Server"
     )
 
+    # Create a background event listener
+    asyncio.create_task(mcp_event_logging(mcp_server))
+
     # Create agent WITH MCP tools - this is the agent we'll actually use
     agent_with_mcp = await MCPToolsIntegration.create_agent_with_tools(
         agent_class=GoogleCalendarAgent,
         agent_kwargs={"chat_ctx": initial_ctx},
         mcp_servers=[mcp_server]
     )
+
+    logger.debug(f"Available MCP tools: {agent_with_mcp.tools}")
 
     # Start session with the MCP-enhanced agent (NOT a new instance!)
     await session.start(
