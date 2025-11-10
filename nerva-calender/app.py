@@ -463,7 +463,10 @@ async def entrypoint(ctx: JobContext):
 
     # Initialize MCP server
     mcp_server = MCPServerSse(
-        params={"url": os.environ.get("N8N_MCP_SERVER_URL")},
+        params={
+            "url": os.environ.get("N8N_MCP_SERVER_URL"),
+            "see_read_timeout" : 60 * 60
+            },
         cache_tools_list=True,
         name="SSE MCP Server"
     )
