@@ -26,10 +26,8 @@ from livekit.agents.voice import Agent, AgentSession
 from livekit.plugins import deepgram, openai, silero
 
 from livekit import agents
-from livekit.agents import AgentSession, Agent, RoomInputOptions
+from livekit.agents import AgentSession, Agent, RoomInputOptions, mcp
 from livekit.plugins import noise_cancellation
-from mcp_client import MCPServerSse
-from mcp_client.agent_tools import MCPToolsIntegration
 from mem0 import AsyncMemoryClient
 from typing import cast
 import json
@@ -351,26 +349,6 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
             # Clear so we don't keep reusing old frames
             self._latest_frame = None
 
-async def mcp_event_logging(mcp_server: MCPServerSse):
-    async with mcp_server.create_streams() as (receive_stream, send_stream):
-        logger.debug(f"[MCP EVENT LOGGING] Attached to MCP stream for {mcp_server.name}")
-
-        async def _listener():
-            try:
-                async for msg in receive_stream:
-                    if isinstance(msg, Exception):
-                        logger.error(f"[MCP EVENT LOGGING] MCP stream error: {msg}")
-                    else:
-                        logger.debug(f"[MCP EVENT LOGGING] MCP message: {msg}")
-            except Exception as e:
-                logger.exception(f"[MCP EVENT LOGGING] Exception in MCP stream listener: {e}")
-            finally:
-                logger.warning(f"[MCP EVENT LOGGING] MCP connection closed for {mcp_server.name}")
-
-        async with anyio.create_task_group() as task_group:
-            task_group.start_soon(_listener)
-            await anyio.sleep_forever()
-
 # ------------- ENTRYPOINT / WORKER SETUP -------------
 async def entrypoint(ctx: JobContext):
     
@@ -411,25 +389,15 @@ async def entrypoint(ctx: JobContext):
             await mem0.add(messages_formatted, user_id="dev")
 
         logging.info("Chat context saved to memory")
-
-    session = AgentSession()
     
     mem0 = AsyncMemoryClient()
     user_name = "dev"
 
-    results = await mem0.get_all(
-        filters={
-            "OR": [
-                {
-                    "user_id": user_name
-                }
-            ]
-        }
-    )
+    results = await mem0.get_all(filters={"OR": [{"user_id": user_name}]})
     results = results["results"]
     initial_ctx = ChatContext()
-    memory_str = ""
 
+    memory_str = ""
     if results:
         memories = [
             {
@@ -460,33 +428,14 @@ async def entrypoint(ctx: JobContext):
             Memories: {memory_str}
             """
         )
-
-    # Initialize MCP server
-    mcp_server = MCPServerSse(
-        params={
-            "url": os.environ.get("N8N_MCP_SERVER_URL"),
-            "see_read_timeout" : 60 * 60
-            },
-        cache_tools_list=True,
-        name="SSE MCP Server"
+    
+    # Start session with MCP access with GoogleCalendarAgent
+    session = AgentSession(
+        mcp_servers=[mcp.MCPServerHTTP(os.environ.get("N8N_MCP_SERVER_URL"))]
     )
-
-    # Create a background event listener
-    asyncio.create_task(mcp_event_logging(mcp_server))
-
-    # Create agent WITH MCP tools - this is the agent we'll actually use
-    agent_with_mcp = await MCPToolsIntegration.create_agent_with_tools(
-        agent_class=GoogleCalendarAgent,
-        agent_kwargs={"chat_ctx": initial_ctx},
-        mcp_servers=[mcp_server]
-    )
-
-    logger.debug(f"Available MCP tools: {agent_with_mcp.tools}")
-
-    # Start session with the MCP-enhanced agent (NOT a new instance!)
     await session.start(
-        agent=agent_with_mcp,  # ✅ Use the MCP-enhanced agent
         room=ctx.room,
+        agent=GoogleCalendarAgent(chat_ctx=initial_ctx),
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC(),
         ),
