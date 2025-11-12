@@ -31,13 +31,13 @@ export function ScalerController() {
   }, [scale]);
 
   return (
-    <div className="w-1/2 ml-2 mt-3 mr-4">
+    <div className="w-2/3 mt-3">
       {/* Points for Font Sizes */}
       <div className="relative flex justify-between">
-        <button onClick={setSmallScale} className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${scale === 1 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>S</button>
-        <button onClick={setMediumScale} className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${scale === 1.25 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>M</button>
-        <button onClick={setLargeScale} className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${scale === 1.5 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>L</button>
-        <button onClick={setXLargeScale} className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition ${scale === 1.75 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>XL</button>
+        <button onClick={setSmallScale} className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${scale === 1 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>S</button>
+        <button onClick={setMediumScale} className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${scale === 1.25 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>M</button>
+        <button onClick={setLargeScale} className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${scale === 1.5 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>L</button>
+        <button onClick={setXLargeScale} className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${scale === 1.75 ? "bg-secondary-foreground text-background" : "bg-background text-foreground"}`}>XL</button>
       </div>
     </div>
   );

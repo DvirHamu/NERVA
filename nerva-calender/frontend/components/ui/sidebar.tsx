@@ -63,19 +63,31 @@ export function Sidebar({ children }: SidebarProps) {
         {/* Calendar & Badge Buttons */}
         <div className="flex flex-col space-y-4">
           {/* Calendar Button */}
-          <button style={{ width: "3em", height: "3em" }} className={sidebarButton} onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="light_calendar.svg" alt="Calendar" width={24} height={24}/>)}
-          </button>
+          <div>
+            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_calendar.svg" alt="Calendar" width={24} height={24}/>)}
+            </button>
+            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_calendar.svg" alt="Calendar" width={24} height={24}/>)}
+            </button>
+          </div>
 
             {/* Badge Button */}
-          <button style={{ width: "3em", height: "3em" }} className={`bg-secondary-foreground rounded-full p-4 hover:scale-110 translate ${badgesEnabled ? "visible" : "hidden"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
-            {openBadges ? (<Image src="light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="light_badge.svg" alt="Badge" width={24} height={24}/>)}
-          </button>
+            <div>
+              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
+                {openBadges ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_badge.svg" alt="Badge" width={24} height={24}/>)}
+              </button>
+              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
+                {openBadges ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_badge.svg" alt="Badge" width={24} height={24}/>)}
+              </button>
+            </div>
         </div>
 
         {/* Settings Button */}
         <div className="pb-2">
-          <button style={{ width: "3em", height: "3em" }} className={sidebarButton} onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
-            {openSettings ? (<Image src="light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="light_settings.svg" alt="Settings" width={24} height={24} />)}
+          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
+            {openSettings ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_settings.svg" alt="Settings" width={24} height={24} />)}
+          </button>
+          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
+            {openSettings ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_settings.svg" alt="Settings" width={24} height={24} />)}
           </button>
         </div>
       </div>

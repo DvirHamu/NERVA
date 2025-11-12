@@ -3,7 +3,7 @@ from flask_cors import CORS
 
 # Shared configuration dictionary for TTS
 tts_config = {
-    "voice": "shimmer",
+    "voice": "onyx",
     "speed": 1.0,
 }
 
@@ -21,6 +21,6 @@ def update_tts():
     print("Updated TTS config:", tts_config)
     return jsonify({"status": "ok", "new_config": tts_config})
 
-def start_flask_server():
+def run_flask():
     """Run Flask app on a separate port/thread"""
     flask_app.run(port=5000, debug=False)

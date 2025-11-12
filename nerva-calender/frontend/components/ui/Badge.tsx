@@ -1,6 +1,6 @@
 import Image from "next/image"
 
-const badgeNameStyle = "text-foreground text-2xl font-bold"
+const badgeNameStyle = "text-foreground text-xl"
 const badgeDescStyle = "text-foreground text-l"
 
 export function Badge({imagePath, badgeName, badgeDescription, enableOpacity}:{imagePath: string, badgeName: string, badgeDescription: string, enableOpacity:number}){

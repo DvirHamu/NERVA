@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 
-const buttonStyle = "bg-background hover:scale-103 text-foreground py-3 px-3 rounded transition"
+const buttonStyle = "hover:scale-103 py-3 px-3 rounded transition"
 const innerStyle = "flex justify-center items-center mx-3"
 const sidebarOption= "text-foreground text-s ml-4";
 
 export function TTSControls(){
-    const [config, setConfig] = useState({ voice : "Onyx"});
-    const [speed, setSpeed] = useState({ speed : 1.0 })
-
+    const [config, setConfig] = useState({ voice : "onyx", speed: 1.0});
     useEffect(() => {
     fetch("http://localhost:5000/get_tts")
         .then((res) => {
@@ -22,7 +20,7 @@ export function TTSControls(){
     }, []);
 
 
-    const updateConfig = async (ui_data) => {
+    const updateConfig = async (ui_data: Partial<typeof config>) => {
         console.log("Sending Update: ", ui_data);
         const response = await fetch("http://localhost:5000/update_tts", {
             method: "POST",
@@ -38,41 +36,40 @@ export function TTSControls(){
 
     return(
         <div>
-            {/* AI Voice Button Grid */}
+            {/* --- AI Voice Button Grid --- */}
             <p className={sidebarOption}>Voice Options</p>
-            <div className="grid gap-4 grid-cols-2 ml-4 mr-4 ">
-                <button className={`${buttonStyle}`} onClick={() => updateConfig({ voice: "onyx"})}>
-                    <div className={`${innerStyle}`}>
-                        <p>Onyx</p>
+            <div className="grid gap-4 grid-cols-2 ml-4 mr-4 mt-3">
+                {["onyx", "shimmer", "nova", "ash"].map((voice) => (
+                <button
+                    key={voice}
+                    className={`${buttonStyle} ${
+                    config.voice === voice ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
+                    }`}
+                    onClick={() => updateConfig({ voice })}
+                >
+                    <div className={innerStyle}>
+                    <p className="capitalize">{voice}</p>
                     </div>
                 </button>
-                <button className={`${buttonStyle}`} onClick={() => updateConfig({ voice: "shimmer"})}>
-                    <div className={`${innerStyle}`}>
-                        <p>Shimmer</p>
-                    </div>
-                </button>
-                <button className={`${buttonStyle}`} onClick={() => updateConfig({ voice: "nova"})}>
-                    <div className={`${innerStyle}`}>
-                        <p>Nova</p>
-                    </div>
-                </button>
-                <button className={`${buttonStyle}`} onClick={() => updateConfig({ voice: "ash"})}>
-                    <div className={`${innerStyle}`}>
-                        <p>Ash</p>
-                    </div>
-                </button>
+                ))}
             </div>
 
             {/* Voice Speed */}
-            <div className="flex justify-between items-center my-2">
+             <div className="flex justify-between items-center my-2 mt-3">
                 <p className={sidebarOption}>Voice Speed</p>
-                <div className="w-1/2 ml-2 mt-3 mr-4">
-                    {/* Points for Font Sizes */}
+                <div className="w-2/3">
                     <div className="relative flex justify-between">
-                        <button onClick={() => updateConfig({ speed: 0.75 })} className={`w-23 h-9 ml-3 rounded-full border-2 flex items-center justify-center transition}`}>0.5x</button>
-                        <button onClick={() => updateConfig({ speed: 1.0 })} className={`w-23 h-9 ml-3 rounded-full border-2 flex items-center justify-center transition`}>1.0x</button>
-                        <button onClick={() => updateConfig({ speed: 1.5 })} className={`w-23 h-9 ml-3 rounded-full border-2 flex items-center justify-center transition`}>1.5x</button>
-                        <button onClick={() => updateConfig({ speed: 2.0 })} className={`w-23 h-9 ml-3 rounded-full border-2 flex items-center justify-center transition`}>2.0x</button>
+                        {[0.5, 1.0, 1.5, 2.0].map((speed) => (
+                        <button
+                            key={speed}
+                            onClick={() => updateConfig({ speed })}
+                            className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${
+                            config.speed === speed ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
+                            }`}
+                        >
+                            {speed}x
+                        </button>
+                        ))}
                     </div>
                 </div>
             </div>
