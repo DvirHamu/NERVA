@@ -71,8 +71,8 @@ def get_memory_by_query():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    add_memory()
+    #add_memory()
     #get_memory_by_query()
 
-    #mem0 = MemoryClient()
-    #mem0.delete_all(user_id=user_name)
+    mem0 = MemoryClient()
+    mem0.delete_all(user_id=user_name)
