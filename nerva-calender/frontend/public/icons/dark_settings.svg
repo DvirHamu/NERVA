@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="24.999992mm"
+   height="24.999996mm"
+   viewBox="0 0 24.999992 24.999996"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <g
+     id="layer1"
+     transform="translate(-169.08078,-64.985184)">
+    <g
+       id="g14">
+      <rect
+         style="fill:none;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+         id="rect12-1-9"
+         width="25"
+         height="25"
+         x="169.08078"
+         y="64.985184"
+         ry="0" />
+      <g
+         id="g11-8"
+         transform="matrix(0.39157014,0,0,0.39157014,169.91862,16.850361)"
+         style="stroke-width:5.10764;stroke-dasharray:none">
+        <path
+           style="fill:none;stroke:#000000;stroke-width:5.89636;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+           id="path10-40"
+           d="m 33.652101,171.31979 c -8.439512,3.96402 -2.022853,-4.13931 -11.346511,-4.22963 -9.323657,-0.0903 -3.065175,8.1358 -11.426314,4.00904 -8.361139,-4.12675 1.97502,-4.16235 -3.7675744,-11.50819 -5.7425939,-7.34584 -8.2719254,2.67613 -10.2585834,-6.43386 -1.9866582,-9.10999 4.4856624,-1.05105 6.6484219,-10.12085 2.1627592,-9.06979 -7.2497467,-4.7987 -1.3659306,-12.03192 5.8838171,-7.23322 3.6185094,2.85171 12.0580215,-1.1123 8.43951,-3.96401 -0.768361,-8.66003 8.555296,-8.56971 9.323658,0.0903 0.02655,4.60707 8.387684,8.73383 8.361139,4.12675 6.291617,-6.00017 12.03421,1.34567 5.742595,7.34584 -3.585408,2.89322 -1.598749,12.00321 1.986658,9.10999 8.613878,1.17794 6.451118,10.24774 -2.16276,9.0698 -4.497476,-0.99929 -10.381292,6.23393 -5.883816,7.23321 4.449714,7.46903 -3.989797,11.43304 z"
+           transform="matrix(0.78912209,0.35728285,-0.35728285,0.78912209,64.790941,29.789671)" />
+        <circle
+           style="fill:none;stroke:#000000;stroke-width:5.10764;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+           id="path11-7"
+           cx="29.783007"
+           cy="154.85367"
+           r="9.6277399" />
+      </g>
+    </g>
+  </g>
+</svg>
