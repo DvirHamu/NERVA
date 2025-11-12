@@ -33,13 +33,16 @@ from typing import cast
 import json
 import logging
 
+import threading
+from ai_ui_control import run_flask, tts_config
+
 logger = logging.getLogger("google-calendar-voice-agent")
 logger.setLevel(logging.INFO)
 
 # This .env is for Google (client ID/secret, refresh token, etc.)
 load_dotenv(dotenv_path="./tokens/.env")
 
-
+voiceInstructions = """Voice: Warm, empathetic, and professional, reassuring the customer that they are understood and will be helped.\n\nPunctuation: Well-structured with natural pauses, allowing for clarity and a steady, calming flow.\n\nDelivery: Calm and patient, with a supportive and understanding tone that reassures the listener.\n\nPhrasing: Clear and concise, using customer-friendly language that avoids jargon while maintaining professionalism.\n\nTone: Empathetic and solution-focused, emphasizing both understanding and proactive assistance."""
 
 class GoogleCalendarAgent(Agent):
     def __init__(self, chat_ctx=None) -> None:
@@ -276,7 +279,7 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
             ),
             stt=deepgram.STT(),
             llm=openai.LLM(model="gpt-4.1-mini"),
-            tts=openai.TTS(),
+            tts=openai.TTS( model="gpt-4o-mini-tts", voice=tts_config["voice"], speed=tts_config["speed"], instructions=voiceInstructions),
             chat_ctx=chat_ctx,
             vad=silero.VAD.load(
                 activation_threshold=0.6,
@@ -448,4 +451,8 @@ async def entrypoint(ctx: JobContext):
 
 
 if __name__ == "__main__":
+    # Start the flask backend on separate level
+    threading.Thread(target=run_flask, daemon=True).start()
+
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
+

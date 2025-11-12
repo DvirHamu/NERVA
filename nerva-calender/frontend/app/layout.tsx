@@ -5,6 +5,9 @@ import { ApplyThemeScript, ThemeToggle } from '@/components/app/theme-toggle';
 import { cn, getAppConfig, getStyles } from '@/lib/utils';
 import '@/styles/globals.css';
 
+import { SidebarPullout } from "@/components/ui/sidebarpullout"
+import { Sidebar } from "@/components/ui/sidebar"
+
 const publicSans = Public_Sans({
   variable: '--font-public-sans',
   subsets: ['latin'],
@@ -41,6 +44,7 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
+// MAIN LAYOUT
 export default async function RootLayout({ children }: RootLayoutProps) {
   const hdrs = await headers();
   const appConfig = await getAppConfig(hdrs);
@@ -64,10 +68,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <ApplyThemeScript />
       </head>
       <body className="overflow-x-hidden">
-        {children}
-        <div className="group fixed bottom-0 left-1/2 z-50 mb-2 -translate-x-1/2">
-          <ThemeToggle className="translate-y-20 transition-transform delay-150 duration-300 group-hover:translate-y-0" />
-        </div>
+        <Sidebar>{children}</Sidebar>
       </body>
     </html>
   );

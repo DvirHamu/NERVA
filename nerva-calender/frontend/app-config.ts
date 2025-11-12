@@ -20,20 +20,20 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
-  companyName: 'LiveKit',
-  pageTitle: 'LiveKit Voice Agent',
-  pageDescription: 'A voice agent built with LiveKit',
+  companyName: 'NERVA',
+  pageTitle: 'NERVA',
+  pageDescription: 'An AI voice assistant for planning and journaling',
 
   supportsChatInput: true,
   supportsVideoInput: true,
   supportsScreenShare: true,
   isPreConnectBufferEnabled: true,
 
-  logo: '/lk-logo.svg',
-  accent: '#002cf2',
+  logo: '/nerva_logo.svg',
+  accent: '#2563eb',
   logoDark: '/lk-logo-dark.svg',
   accentDark: '#1fd5f9',
-  startButtonText: 'Start call',
+  startButtonText: 'Start Chat',
 
   // for LiveKit Cloud Sandbox
   sandboxId: undefined,
