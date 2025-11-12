@@ -64,30 +64,30 @@ export function Sidebar({ children }: SidebarProps) {
         <div className="flex flex-col space-y-4">
           {/* Calendar Button */}
           <div>
-            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_calendar.svg" alt="Calendar" width={24} height={24}/>)}
+            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-3 hover:scale-110 translate block dark:hidden flex justify-center" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? ( <Image src="/icons/light_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/light_calendar.svg" alt="Calendar" width={35} height={35} />)}
             </button>
-            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_calendar.svg" alt="Calendar" width={24} height={24}/>)}
+            <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-3 hover:scale-110 translate hidden dark:block flex justify-center" onClick={() => {setOpenCalendar(!openCalendar); setOpenBadges(false); setOpenSetting(false);}}> {openCalendar ? (<Image src="/icons/dark_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/dark_calendar.svg" alt="Calendar" width={35} height={35}/>)}
             </button>
           </div>
 
             {/* Badge Button */}
             <div>
-              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
-                {openBadges ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_badge.svg" alt="Badge" width={24} height={24}/>)}
+              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-3 hover:scale-110 translate block dark:hidden flex justify-center ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
+                {openBadges ? (<Image src="/icons/light_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/light_badge.svg" alt="Badge" width={35} height={35}/>)}
               </button>
-              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
-                {openBadges ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_badge.svg" alt="Badge" width={24} height={24}/>)}
+              <button style={{ width: "3.5em", height: "3.5em" }} className={`bg-secondary-foreground rounded-full p-3 hover:scale-110 translate hidden dark:block flex justify-center ${badgesEnabled ? "visible" : "invisible"}`} onClick={() => {setOpenBadges(!openBadges); setOpenCalendar(false); setOpenSetting(false);}}>
+                {openBadges ? (<Image src="/icons/dark_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/dark_badge.svg" alt="Badge" width={35} height={35}/>)}
               </button>
             </div>
         </div>
 
         {/* Settings Button */}
         <div className="pb-2">
-          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate block dark:hidden" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
-            {openSettings ? (<Image src="/icons/light_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/light_settings.svg" alt="Settings" width={24} height={24} />)}
+          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-3 hover:scale-110 translate block dark:hidden flex justify-center" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
+            {openSettings ? (<Image src="/icons/light_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/light_settings.svg" alt="Settings" width={35} height={35} />)}
           </button>
-          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-4 hover:scale-110 translate hidden dark:block" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
-            {openSettings ? (<Image src="/icons/dark_cross.svg" alt="Close" width={24} height={24} />) : (<Image src="/icons/dark_settings.svg" alt="Settings" width={24} height={24} />)}
+          <button style={{ width: "3.5em", height: "3.5em" }} className="bg-secondary-foreground rounded-full p-3 hover:scale-110 translate hidden dark:block flex justify-center" onClick={() => {setOpenSetting(!openSettings); setOpenCalendar(false); setOpenBadges(false);}}>
+            {openSettings ? (<Image src="/icons/dark_cross.svg" alt="Close" width={35} height={35} />) : (<Image src="/icons/dark_settings.svg" alt="Settings" width={35} height={35} />)}
           </button>
         </div>
       </div>
