@@ -34,7 +34,7 @@ import json
 import logging
 
 import threading
-from ai_ui_control import run_flask, tts_config
+from ai_ui_control import run_flask, tts_config, register_tts_update_callback
 
 logger = logging.getLogger("google-calendar-voice-agent")
 logger.setLevel(logging.INFO)
@@ -158,7 +158,8 @@ Rules:
 - A task only exists if it appears in Get_uncompleted_tasks_in_Google_Tasks.
 - If you recall that an event was already created, updated, or deleted in memory, assume the action was completed but do not assume the event exists. 
 - Create or update events and tasks only when the user asks.
-- When creating events use Get_many_events_in_Google_Calendar to first see what events exist and make sure to not create any new events at the same time as already existing events.
+- When creating events use Get_many_events_in_Google_Calendar to first see what events exist. 
+- Never create any new events at the same time as already existing events.
 - Only delete an event when strictly necessary and provided explicit direction by the user.
 
 Recommended Actions:
@@ -310,6 +311,7 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
                 max_buffered_speech=60.0,
             )
         )
+        logger.info(f"[TTS] Model initialized with tts settings {tts_config}")
 
     async def _create_video_stream(self, track: rtc.Track):
         # Close old stream if we already had one
@@ -376,6 +378,33 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
 
 # ------------- ENTRYPOINT / WORKER SETUP -------------
 async def entrypoint(ctx: JobContext):
+    loop = asyncio.get_running_loop()
+    tts_updated = asyncio.Event()
+    latest_tts = {"voice": tts_config["voice"], "speed": tts_config["speed"]}
+    
+    def on_tts_update(new_config):
+        logger.info("[TTS] on_tts_update called from Flask thread with", new_config)
+        asyncio.run_coroutine_threadsafe(signal_tts_update(new_config), loop)
+
+    async def signal_tts_update(new_config):
+        latest_tts.update(new_config)
+        logger.info(f"[TTS] Config updated to {latest_tts}")
+        tts_updated.set()
+
+    register_tts_update_callback(on_tts_update)
+
+    async def watch_tts():
+        while True:
+            await tts_updated.wait()
+            tts_updated.clear()
+            logger.info(f"[TTS] Detected change {latest_tts}")
+            await handle_tts_update(latest_tts)
+
+    async def handle_tts_update(config):
+        tts_config.update(config)
+        logger.info(f"[TTS] Applied new config {tts_config}")
+
+    asyncio.create_task(watch_tts())
     
     async def shutdown_hook(chat_ctx: ChatContext, mem0: AsyncMemoryClient, memory_str: str):
         logging.info("Shutting down, saving chat context to memory")
@@ -409,12 +438,12 @@ async def entrypoint(ctx: JobContext):
         logging.info(f"Formatted messages to add to memory: {messages_formatted}")
         
         if messages_formatted:
-            await mem0.add(messages_formatted, user_id="dev")
+            await mem0.add(messages_formatted, user_id="Journey")
 
         logging.info("Chat context saved to memory")
     
     mem0 = AsyncMemoryClient()
-    user_name = "dev"
+    user_name = "Journey"
 
     results = await mem0.get_all(filters={"OR": [{"user_id": user_name}]})
     results = results["results"]
