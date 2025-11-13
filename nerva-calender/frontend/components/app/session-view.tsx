@@ -40,24 +40,6 @@ const BOTTOM_VIEW_MOTION_PROPS = {
   },
 };
 
-interface FadeProps {
-  top?: boolean;
-  bottom?: boolean;
-  className?: string;
-}
-
-export function Fade({ top = false, bottom = false, className }: FadeProps) {
-  return (
-    <div
-      className={cn(
-        'from-background pointer-events-none h-4 bg-linear-to-b to-transparent',
-        top && 'bg-linear-to-b',
-        bottom && 'bg-linear-to-t',
-        className
-      )}
-    />
-  );
-}
 interface SessionViewProps {
   appConfig: AppConfig;
 }
@@ -91,38 +73,39 @@ export const SessionView = ({
   }, [messages]);
 
   return (
-    <section className="bg-background relative z-10 h-full w-full overflow-hidden" {...props}>
-      {/* Chat Transcript */}
-      <div
-        className={cn(
-          'fixed inset-0 grid grid-cols-1 grid-rows-1',
-          !chatOpen && 'pointer-events-none'
-        )}
-      >
-        <ScrollArea ref={scrollAreaRef} className="px-4 pt-40 pb-[150px] md:px-6 md:pb-[180px]">
-          <ChatTranscript
-            hidden={!chatOpen}
-            messages={messages}
-            className="mx-auto max-w-2xl space-y-3 transition-opacity duration-300 ease-out"
-          />
-        </ScrollArea>
-      </div>
-
-      {/* Tile Layout */}
-      <TileLayout chatOpen={chatOpen} />
-
-      {/* Bottom */}
-      <MotionBottom
-        {...BOTTOM_VIEW_MOTION_PROPS}
-        className="mt-80"
-      >
-        {appConfig.isPreConnectBufferEnabled && (
-          <PreConnectMessage messages={messages} className="pb-4" />
-        )}
-        <div className="relative mx-auto max-w-2xl pb-3 md:pb-12">
-          <AgentControlBar controls={controls} onChatOpenChange={setChatOpen} />
+    <div className=''>
+      <section className="bg-background relative z-10 h-full w-full overflow-hidden" {...props}>
+        {/* Chat Transcript */}
+        <div
+          className={cn(
+            'fixed inset-0 grid grid-cols-1 grid-rows-1',
+          )}
+        >
+          <ScrollArea ref={scrollAreaRef} className="px-4 pt-40 pb-[150px] md:px-6 md:pb-[180px]">
+            <ChatTranscript
+              hidden={!chatOpen}
+              messages={messages}
+              className="mx-auto max-w-2xl space-y-3 transition-opacity duration-300 ease-out"
+            />
+          </ScrollArea>
         </div>
-      </MotionBottom>
-    </section>
+
+        {/* Tile Layout */}
+        <TileLayout chatOpen={chatOpen} />
+
+        {/* Bottom */}
+        <MotionBottom
+          {...BOTTOM_VIEW_MOTION_PROPS}
+          className="fixed inset-x-3 bottom-0 z-50 md:inset-x-12"
+        >
+          {appConfig.isPreConnectBufferEnabled && (
+            <PreConnectMessage messages={messages} className="pb-4" />
+          )}
+          <div className="bg-background relative mx-auto max-w-2xl pb-3 md:pb-12">
+            <AgentControlBar controls={controls} onChatOpenChange={setChatOpen} />
+          </div>
+        </MotionBottom>
+      </section>
+    </div>
   );
 };
