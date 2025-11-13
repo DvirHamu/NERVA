@@ -5,8 +5,9 @@ const innerStyle = "flex justify-center items-center mx-3"
 const sidebarOption= "text-foreground text-s ml-4";
 
 export function TTSControls(){
-    const [config, setConfig] = useState({ voice : "onyx", speed: 1.0});
-    useEffect(() => {
+    const [ai_voice, updateVoice] = useState("nova");
+    const [ai_speed, updateSpeed] = useState(1);
+    /* useEffect(() => {
     fetch("http://localhost:5000/get_tts")
         .then((res) => {
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -17,10 +18,10 @@ export function TTSControls(){
         setConfig(data);
         })
         .catch((err) => console.error("Error fetching TTS config:", err));
-    }, []);
+    }, []); */
 
 
-    const updateConfig = async (ui_data: Partial<typeof config>) => {
+    /* const updateConfig = async (ui_data: Partial<typeof config>) => {
         console.log("Sending Update: ", ui_data);
         const response = await fetch("http://localhost:5000/update_tts", {
             method: "POST",
@@ -32,7 +33,7 @@ export function TTSControls(){
         const data = await response.json();
         console.log("Response JSON: ", data);
         setConfig(data.new_config);
-    };
+    }; */
 
     return(
         <div>
@@ -43,9 +44,9 @@ export function TTSControls(){
                 <button
                     key={voice}
                     className={`${buttonStyle} ${
-                    config.voice === voice ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
+                    voice === ai_voice ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
                     }`}
-                    onClick={() => updateConfig({ voice })}
+                    onClick={() => updateVoice(voice)}
                 >
                     <div className={innerStyle}>
                     <p className="capitalize">{voice}</p>
@@ -62,9 +63,9 @@ export function TTSControls(){
                         {[0.5, 1.0, 1.5, 2.0].map((speed) => (
                         <button
                             key={speed}
-                            onClick={() => updateConfig({ speed })}
+                            onClick={() => updateSpeed(speed)}
                             className={`w-11 h-11 mx-1 rounded-4xl border-2 flex items-center justify-center transition hover:scale-110 ${
-                            config.speed === speed ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
+                            speed === ai_speed ? "bg-secondary-foreground text-background" : "bg-background text-foreground"
                             }`}
                         >
                             {speed}x
