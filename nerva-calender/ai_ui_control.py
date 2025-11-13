@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+import asyncio
+
 # Shared configuration dictionary for TTS
 tts_config = {
     "voice": "onyx",
@@ -18,7 +20,8 @@ def get_tts():
 def update_tts():
     data = request.json
     tts_config.update(data)
-    print("Updated TTS config:", tts_config)
+    print("[TTS] Updated TTS config:", tts_config)
+
     return jsonify({"status": "ok", "new_config": tts_config})
 
 def run_flask():

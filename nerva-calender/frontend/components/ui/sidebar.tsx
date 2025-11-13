@@ -100,7 +100,7 @@ export function Sidebar({ children }: SidebarProps) {
           {openCalendar && (
             <div className="h-full">
               <iframe
-                src="https://calendar.google.com/calendar/embed?src=c93c049f824b0a5c95e2e114d595e1cd7b17b1bc327e28654c598714276b54d4%40group.calendar.google.com&ctz=America%2FPhoenix"
+                src="https://calendar.google.com/calendar/embed?src=dhamu%40asu.edu&ctz=America%2FPhoenix"
                 className="w-full h-full border-0 rounded-lg"
               ></iframe>
             </div>

@@ -2,6 +2,7 @@ import os
 import logging
 import asyncio
 import anyio
+import aiohttp
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ import json
 import logging
 
 import threading
-from ai_ui_control import run_flask, tts_config
+from ai_ui_control import run_flask
 
 logger = logging.getLogger("google-calendar-voice-agent")
 logger.setLevel(logging.INFO)
@@ -45,7 +46,7 @@ load_dotenv(dotenv_path="./tokens/.env")
 voiceInstructions = """Voice: Warm, empathetic, and professional, reassuring the customer that they are understood and will be helped.\n\nPunctuation: Well-structured with natural pauses, allowing for clarity and a steady, calming flow.\n\nDelivery: Calm and patient, with a supportive and understanding tone that reassures the listener.\n\nPhrasing: Clear and concise, using customer-friendly language that avoids jargon while maintaining professionalism.\n\nTone: Empathetic and solution-focused, emphasizing both understanding and proactive assistance."""
 
 class GoogleCalendarAgent(Agent):
-    def __init__(self, chat_ctx=None) -> None:
+    def __init__(self, chat_ctx=None, tts_config=None) -> None:
         # video-related state (for screen share / camera)
         self._latest_frame = None
         self._video_stream: rtc.VideoStream | None = None
@@ -158,7 +159,8 @@ Rules:
 - A task only exists if it appears in Get_uncompleted_tasks_in_Google_Tasks.
 - If you recall that an event was already created, updated, or deleted in memory, assume the action was completed but do not assume the event exists. 
 - Create or update events and tasks only when the user asks.
-- When creating events use Get_many_events_in_Google_Calendar to first see what events exist and make sure to not create any new events at the same time as already existing events.
+- When creating events use Get_many_events_in_Google_Calendar to first see what events exist. 
+- Never create any new events at the same time as already existing events.
 - Only delete an event when strictly necessary and provided explicit direction by the user.
 
 Recommended Actions:
@@ -310,6 +312,7 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
                 max_buffered_speech=60.0,
             )
         )
+        logger.info(f"[TTS] Model initialized with tts settings {tts_config}")
 
     async def _create_video_stream(self, track: rtc.Track):
         # Close old stream if we already had one
@@ -374,9 +377,13 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
             # Clear so we don't keep reusing old frames
             self._latest_frame = None
 
+async def get_tts_from_flask():
+    async with aiohttp.ClientSession() as session:
+        async with session.get("http://localhost:5000/get_tts") as resp:
+            return await resp.json()
+
 # ------------- ENTRYPOINT / WORKER SETUP -------------
-async def entrypoint(ctx: JobContext):
-    
+async def entrypoint(ctx: JobContext):    
     async def shutdown_hook(chat_ctx: ChatContext, mem0: AsyncMemoryClient, memory_str: str):
         logging.info("Shutting down, saving chat context to memory")
         logging.info(f"Chat context messages: {chat_ctx.items}")
@@ -409,12 +416,12 @@ async def entrypoint(ctx: JobContext):
         logging.info(f"Formatted messages to add to memory: {messages_formatted}")
         
         if messages_formatted:
-            await mem0.add(messages_formatted, user_id="dev")
+            await mem0.add(messages_formatted, user_id="Journey")
 
         logging.info("Chat context saved to memory")
     
     mem0 = AsyncMemoryClient()
-    user_name = "dev"
+    user_name = "Journey"
 
     results = await mem0.get_all(filters={"OR": [{"user_id": user_name}]})
     results = results["results"]
@@ -465,6 +472,8 @@ async def entrypoint(ctx: JobContext):
             await ensure_mcp_connected(session)
 
     # Start session with MCP access with GoogleCalendarAgent
+    tts_config = await get_tts_from_flask()
+    
     session = AgentSession(
         mcp_servers=[mcp.MCPServerHTTP(os.environ.get("N8N_MCP_SERVER_URL"))]
     )
@@ -472,7 +481,7 @@ async def entrypoint(ctx: JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=GoogleCalendarAgent(chat_ctx=initial_ctx),
+        agent=GoogleCalendarAgent(chat_ctx=initial_ctx, tts_config=tts_config),
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC(),
         ),
@@ -482,7 +491,6 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     ctx.add_shutdown_callback(lambda: shutdown_hook(session._agent.chat_ctx, mem0, memory_str))
-
 
 if __name__ == "__main__":
     # Start the flask backend on separate level
