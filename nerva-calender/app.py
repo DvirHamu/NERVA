@@ -2,6 +2,7 @@ import os
 import logging
 import asyncio
 import anyio
+import aiohttp
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ import json
 import logging
 
 import threading
-from ai_ui_control import run_flask, tts_config, register_tts_update_callback
+from ai_ui_control import run_flask
 
 logger = logging.getLogger("google-calendar-voice-agent")
 logger.setLevel(logging.INFO)
@@ -45,7 +46,7 @@ load_dotenv(dotenv_path="./tokens/.env")
 voiceInstructions = """Voice: Warm, empathetic, and professional, reassuring the customer that they are understood and will be helped.\n\nPunctuation: Well-structured with natural pauses, allowing for clarity and a steady, calming flow.\n\nDelivery: Calm and patient, with a supportive and understanding tone that reassures the listener.\n\nPhrasing: Clear and concise, using customer-friendly language that avoids jargon while maintaining professionalism.\n\nTone: Empathetic and solution-focused, emphasizing both understanding and proactive assistance."""
 
 class GoogleCalendarAgent(Agent):
-    def __init__(self, chat_ctx=None) -> None:
+    def __init__(self, chat_ctx=None, tts_config=None) -> None:
         # video-related state (for screen share / camera)
         self._latest_frame = None
         self._video_stream: rtc.VideoStream | None = None
@@ -376,36 +377,13 @@ Assistant Output: “That clears it up, thank you. I’ll break this down into f
             # Clear so we don't keep reusing old frames
             self._latest_frame = None
 
+async def get_tts_from_flask():
+    async with aiohttp.ClientSession() as session:
+        async with session.get("http://localhost:5000/get_tts") as resp:
+            return await resp.json()
+
 # ------------- ENTRYPOINT / WORKER SETUP -------------
-async def entrypoint(ctx: JobContext):
-    loop = asyncio.get_running_loop()
-    tts_updated = asyncio.Event()
-    latest_tts = {"voice": tts_config["voice"], "speed": tts_config["speed"]}
-    
-    def on_tts_update(new_config):
-        logger.info("[TTS] on_tts_update called from Flask thread with", new_config)
-        asyncio.run_coroutine_threadsafe(signal_tts_update(new_config), loop)
-
-    async def signal_tts_update(new_config):
-        latest_tts.update(new_config)
-        logger.info(f"[TTS] Config updated to {latest_tts}")
-        tts_updated.set()
-
-    register_tts_update_callback(on_tts_update)
-
-    async def watch_tts():
-        while True:
-            await tts_updated.wait()
-            tts_updated.clear()
-            logger.info(f"[TTS] Detected change {latest_tts}")
-            await handle_tts_update(latest_tts)
-
-    async def handle_tts_update(config):
-        tts_config.update(config)
-        logger.info(f"[TTS] Applied new config {tts_config}")
-
-    asyncio.create_task(watch_tts())
-    
+async def entrypoint(ctx: JobContext):    
     async def shutdown_hook(chat_ctx: ChatContext, mem0: AsyncMemoryClient, memory_str: str):
         logging.info("Shutting down, saving chat context to memory")
         logging.info(f"Chat context messages: {chat_ctx.items}")
@@ -494,6 +472,8 @@ async def entrypoint(ctx: JobContext):
             await ensure_mcp_connected(session)
 
     # Start session with MCP access with GoogleCalendarAgent
+    tts_config = await get_tts_from_flask()
+    
     session = AgentSession(
         mcp_servers=[mcp.MCPServerHTTP(os.environ.get("N8N_MCP_SERVER_URL"))]
     )
@@ -501,7 +481,7 @@ async def entrypoint(ctx: JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=GoogleCalendarAgent(chat_ctx=initial_ctx),
+        agent=GoogleCalendarAgent(chat_ctx=initial_ctx, tts_config=tts_config),
         room_input_options=RoomInputOptions(
             noise_cancellation=noise_cancellation.BVC(),
         ),
@@ -511,7 +491,6 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     ctx.add_shutdown_callback(lambda: shutdown_hook(session._agent.chat_ctx, mem0, memory_str))
-
 
 if __name__ == "__main__":
     # Start the flask backend on separate level
